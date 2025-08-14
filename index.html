@@ -236,7 +236,6 @@ const stockBody=document.getElementById('stockBody');
 const sourceBranchSel=document.getElementById('sourceBranch');
 
 const qtyOverlay=document.getElementById('qtyOverlay');
-const qtyContent=qtyOverlay.querySelector('.card');
 const closeQtyBtn=document.getElementById('closeQtyBtn');
 const qtyTitle=document.getElementById('qtyTitle');
 const dirInfo=document.getElementById('dirInfo');
@@ -248,7 +247,6 @@ const openCartBtn=document.getElementById('openCartBtn');
 const cartCount=document.getElementById('cartCount');
 const cartInline=document.getElementById('cartInline');
 const cartOverlay=document.getElementById('cartOverlay');
-const cartContent=document.getElementById('cartContent');
 const closeCartBtn=document.getElementById('closeCartBtn');
 const cartTableWrap=document.getElementById('cartTableWrap');
 
@@ -265,6 +263,7 @@ function closeAllPopups(){
   transferOverlay.style.display='none';
   qtyOverlay.style.display='none';
   errorOverlay.style.display='none';
+  cartOverlay.style.display='none';
 }
 function persistAll(){ localStorage.setItem(STORAGE_KEY_PRODUCTS,JSON.stringify(products)); localStorage.setItem(STORAGE_KEY_CART,JSON.stringify(transferCart)); }
 function renderCartCount(){ cartCount.textContent=`(${transferCart.length})`; }
@@ -398,12 +397,19 @@ quickQtyGrid.addEventListener('click',e=>{
 });
 
 /* ====== Kayıt & sonrası ====== */
-saveQty.addEventListener('click',()=>{
+saveQty.addEventListener('click',(e)=>{
+  e.preventDefault(); // her ihtimale karşı
   let q = (selectedQty!=null)?selectedQty:parseInt(manualQty.value||'0',10);
-  if(isNaN(q)||q<1){ showError("Geçerli bir adet seçin/girin."); return; }
+  if(isNaN(q)||q<1){ showError("Geçerli bir adet girin."); return; }
   if(q>Number(supplyMaxQty)){ showError(`Maksimum ${supplyMaxQty} adet talep edebilirsiniz.`); return; }
-  finalizeAdd(q);
+  try{
+    finalizeAdd(q);
+  } finally {
+    closeAllPopups();     // 👈 Kaydet anında kesin kapat
+    resumeAfterClose();   // kameraya/barkoda dönüş
+  }
 });
+manualQty.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); saveQty.click(); } });
 
 function finalizeAdd(qty){
   if(!currentProduct || !pendingTargetBranch) return;
@@ -419,9 +425,6 @@ function finalizeAdd(qty){
     "Talep Adedi":qty
   });
   persistAll(); renderCartCount(); renderCartInline();
-
-  closeAllPopups(); // kesin kapat
-  resumeAfterClose();
 }
 
 /* ====== Sepet ====== */
