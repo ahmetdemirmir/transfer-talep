@@ -601,6 +601,42 @@ function renderProducts(list=null){
     productList.appendChild(div);
   });
 }
+
+/* ====== Otomatik Kaydetme & Güvenli Kapatma ====== */
+const AUTO_SAVE_MS = 5000; // 5 sn'de bir snapshot
+setInterval(()=>{ try{ persistAll(); }catch(e){} }, AUTO_SAVE_MS);
+
+// Sekme arka plana düştüğünde veya sayfa kapanırken de kaydet
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ try{ persistAll(); }catch(e){} } });
+window.addEventListener('pagehide', ()=>{ try{ persistAll(); }catch(e){} });
+
+// "Kaydetmeden kapatıyorsunuz" uyarısı
+window.addEventListener('beforeunload', (e)=>{
+  try{ persistAll(); }catch(e){}
+  // Sepette veri varsa veya ürünler yüklenmişse emin misiniz uyarısı çıkar
+  if((transferCart && transferCart.length>0) || (products && products.length>0)){
+    e.preventDefault();
+    e.returnValue = 'Kaydetmeden kapatıyorsunuz, emin misiniz?'; // bazı tarayıcılar kendi mesajını gösterir
+  }
+});
+
+// "Sıfırla" butonu: tüm localStorage izlerini temizle
+resetBtn.addEventListener('click', ()=>{
+  if(confirm('Tüm verileri sıfırlayıp tarayıcı önbelleğini temizleyeyim mi?')){
+    products = [];
+    transferCart = [];
+    try{
+      localStorage.removeItem(STORAGE_KEY_PRODUCTS);
+      localStorage.removeItem(STORAGE_KEY_CART);
+      localStorage.removeItem(STORAGE_KEY_LAST_FROM);
+    }catch(e){}
+    renderProducts();
+    renderCartCount();
+    renderCartInline();
+    alert('Tüm veriler sıfırlandı.');
+  }
+});
+
 </script>
 </body>
 </html>
